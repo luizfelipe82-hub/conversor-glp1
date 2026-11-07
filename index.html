@@ -262,7 +262,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);padding:10px 24px 3
 </section>
 </main>
 <footer>
-<b>Conversor GLP-1</b> · versão 1.3 · 07/11/2026 · criado por Dr. Luiz Felipe Louzada Farias · CRM-ES 16911.<br>
+<b>Conversor GLP-1</b> · versão 1.4 · 07/11/2026 · criado por Dr. Luiz Felipe Louzada Farias · CRM-ES 16911.<br>
 Ferramenta de apoio ao cálculo para profissionais de saúde. Não é prescrição, não substitui avaliação médica individual, bula, rótulo ou protocolo institucional, e não é dispositivo médico. O autor não se responsabiliza por doses calculadas, preparadas ou aplicadas por terceiros, nem por erros de digitação, de leitura, de produto ou de interpretação. Ao usar, você declara ter aceitado o termo de uso. Reprodução ou redistribuição do conteúdo sem autorização do autor não é permitida.
 </footer>
 <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gT">
@@ -416,13 +416,13 @@ const CAT=[
 const CKREF={"Ozempic®":37,"Ozempic® 1 mg":74,"Ozempic® 2 mg":74,"Wegovy® 0,25 mg":37,"Wegovy® 0,5 mg":37,"Wegovy® 1 mg":74,"Wegovy® 1,7 mg":75,"Wegovy® 2,4 mg":75};
 CAT.forEach(p=>{if(p.t!=="dial"&&p.t!=="fixa")return;
  if(/KwikPen/.test(p.m)){p.ck=60;p.ckSrc="KwikPen: 60 cliques = 1 dose cheia (0,6 mL) em todas as concentrações — referência amplamente citada; a Lilly não publica contagem de cliques.";return;}
- if(p.mgDial){p.ck=null;p.ckSrc="Caneta com seletor graduado em mg: a bula orienta NÃO contar cliques (o clique muda perto do fim da caneta). Use o mostrador.";return;}
- if(/Byetta|Lyxumia/.test(p.m)){p.ck=null;p.ckSrc="Caneta de dose fixa por acionamento: não permite fracionar por cliques.";return;}
+ if(p.mgDial){p.mx=/^(Victoza|Lirux)/.test(p.m)?1.8:3;p.ck=Math.round(p.refMg/p.c/0.01);p.ckSrc="⚠ BULA (Victoza®/Saxenda®): selecione a dose pelo mostrador e NÃO conte os cliques — o clique muda ao girar para trás e perto do fim da caneta. Referência não oficial, só para conferência: 10 cliques ≈ 0,6 mg (1 clique ≈ 0,01 mL ≈ 0,06 mg); há fontes que chamam de ‘clique’ cada degrau de 0,6 mg.";return;}
+ if(/Byetta|Lyxumia/.test(p.m)){p.ck=1;p.ckSrc="⚠ BULA: caneta de dose fixa — cada acionamento entrega a dose do rótulo ("+(p.refMg*1000)+" mcg). Não existe ajuste por cliques; 1 acionamento = 1 dose.";return;}
  if(/Semaglutida/.test(p.g)){p.ck=CKREF[p.m]??(p.refMg&&p.c?Math.round(p.refMg/p.c/0.01*0.993):null);p.ckSrc="FlexTouch e similares: 1 clique ≈ 0,01 mL (volume da dose na bula ÷ 0,01 mL). Ex.: Ozempic® 1,34 mg/mL — 1 mg = 0,74 mL = 74 cliques. Referência não oficial; nas sintéticas, confirmar o mecanismo da caneta.";}
 });
 const TLAB={dial:"Caneta multidose · seletor",fixa:"Multidose · dose fixa",unica:"Dose única",oral:"Oral",combo:"Combinação (unidades)",frasco:"Frasco (seringa)"};
 
-const PENS=CAT.filter(p=>p.t==="dial"||p.t==="fixa").map((p,k)=>({id:"p"+k,nome:p.m+" · "+p.e+(p.conf?" (conferir rótulo)":""),c:p.c,v:p.v,refMg:p.refMg,refCk:p.ck??"",ckSrc:p.ckSrc||"",max:p.t==="fixa"?p.refMg:null,fixa:p.t==="fixa",mgDial:!!p.mgDial,grp:p.g,nota:(p.t==="fixa"?"Multidose de dose fixa ("+p.d+"). ":"")+(p.mgDial?"Seletor graduado em mg: use a marcação da caneta; cliques só como conferência. ":"")+(p.conf?"Concentração presumida — confira no rótulo. ":"")+"Esquema: "+p.esq}));
+const PENS=CAT.filter(p=>p.t==="dial"||p.t==="fixa").map((p,k)=>({id:"p"+k,nome:p.m+" · "+p.e+(p.conf?" (conferir rótulo)":""),c:p.c,v:p.v,refMg:p.refMg,refCk:p.ck??"",ckSrc:p.ckSrc||"",max:p.t==="fixa"?p.refMg:(p.mx||null),fixa:p.t==="fixa",mgDial:!!p.mgDial,grp:p.g,nota:(p.t==="fixa"?"Multidose de dose fixa ("+p.d+"). ":"")+(p.mgDial?"Seletor graduado em mg: use a marcação da caneta; cliques só como conferência. ":"")+(p.conf?"Concentração presumida — confira no rótulo. ":"")+"Esquema: "+p.esq}));
 PENS.push({id:"cus",nome:"Outra caneta (personalizada)",c:"",v:"",refMg:"",refCk:"",max:null,nota:"Informe concentração, volume e calibração."});
 $("pPen").innerHTML=[...new Set(PENS.map(p=>p.grp||"Outra"))].map(g=>`<optgroup label="${g}">`+PENS.filter(p=>(p.grp||"Outra")===g).map(p=>`<option value="${p.id}">${p.nome}</option>`).join("")+`</optgroup>`).join("");
 function setPen(){const p=PENS.find(x=>x.id===$("pPen").value);$("pConc").value=p.c;$("pVol").value=p.v;$("pRefMg").value=p.refMg;$("pRefCk").value=p.refCk;$("pRefNote").innerHTML=(p.refCk!==""?`<b>Referência de fábrica: ${p.refCk} cliques = ${f(p.refMg,3)} mg</b> (dose marcada). `:"")+(p.ckSrc?p.ckSrc+" ":"")+p.nota+(p.refCk!==""?" Se a caneta do paciente contar diferente, ajuste o número de cliques acima.":"");calcP();}
@@ -441,12 +441,13 @@ function calcP(){const p=PENS.find(x=>x.id===$("pPen").value),c=num("pConc"),v=n
  if(!isFinite(rc)||rc<=0)al.push(["alert","Sem calibração: conte os cliques de 0 até a dose marcada e informe acima. Sem esse número a conversão não é feita."]);
  if(p.max!=null&&isFinite(mg)&&mg>p.max+1e-9)al.push(["alert",`Acima da dose máxima marcada desta caneta (${f(p.max)} mg). O seletor pode não permitir.`]);
  if(p.fixa)al.push(["note","Caneta de dose fixa (4 doses): o volume residual não é dose garantida pelo fabricante. Não programe uma 5ª dose."]);
- if(p.mgDial)al.push(["okk","Esta caneta tem seletor em mg: prefira a marcação do mostrador à contagem de cliques."]);
+ if(p.mgDial)al.push(["alert","Bula: nesta caneta a dose deve ser selecionada pelo mostrador em mg; não conte os cliques. Os cliques mostrados aqui são só referência de conferência."]);
+ if(/Byetta|Lyxumia/.test(p.nome))al.push(["alert","Bula: caneta de dose fixa — 1 acionamento = 1 dose do rótulo. Não fracionar."]);
  if(/semaglutida/i.test(p.grp||""))al.push(["note","Semaglutida: confira na bula do produto a validade após o 1º uso e a conservação (versões sintéticas exigem geladeira 2–8 °C também durante o uso)."]);
  al.push(["note","Arredondado ao clique inteiro. Registre no prontuário a calibração, a decisão off-label e a orientação dada."]);
  $("qAlerts").innerHTML=al.map(a=>`<div class="${a[0]}">${a[1]}</div>`).join("");
- const DS={"Semaglutida SC":[0.1,0.125,0.25,0.375,0.5,0.75,1,1.25,1.5,1.7,2,2.4],"Semaglutida SC sintética":[0.1,0.125,0.25,0.375,0.5,0.75,1],"Tirzepatida SC":[1,1.25,2,2.5,3.75,5,6.25,7.5,10,12.5,15]}[p.grp];
- $("pTab").innerHTML=(DS&&isFinite(mgck)&&mgck>0)?`<table style="margin-top:8px"><thead><tr><th>Dose (mg)</th><th>Cliques</th><th>Entrega real (mg)</th></tr></thead><tbody>${DS.filter(d=>d<=rm+1e-9).map(d=>{const k=Math.round(d/mgck);return `<tr${Math.abs(d-mg)<1e-9?' class="hl"':''}><td class="num">${f(d,3)}</td><td class="num">${k}</td><td class="num">${f(k*mgck,3)}</td></tr>`;}).join("")}</tbody></table><p class="small">Doses até o máximo que esta caneta entrega por aplicação.</p>`:"";
+ const DS={"Semaglutida SC":[0.1,0.125,0.25,0.375,0.5,0.75,1,1.25,1.5,1.7,2,2.4],"Semaglutida SC sintética":[0.1,0.125,0.25,0.375,0.5,0.75,1],"Tirzepatida SC":[1,1.25,2,2.5,3.75,5,6.25,7.5,10,12.5,15],"Liraglutida SC":[0.3,0.6,0.9,1.2,1.5,1.8,2.4,3]}[p.grp]||[rm];
+ $("pTab").innerHTML=(DS&&isFinite(mgck)&&mgck>0)?`<table style="margin-top:8px"><thead><tr><th>Dose (mg)</th><th>Cliques</th><th>Entrega real (mg)</th></tr></thead><tbody>${DS.filter(d=>d<=(p.max||rm)+1e-9).map(d=>{const k=Math.round(d/mgck);return `<tr${Math.abs(d-mg)<1e-9?' class="hl"':''}><td class="num">${f(d,3)}</td><td class="num">${k}</td><td class="num">${f(k*mgck,3)}</td></tr>`;}).join("")}</tbody></table><p class="small">Doses até o máximo que esta caneta entrega por aplicação.</p>`:"";
  pSummary=`${p.nome}\nDose: ${f(mg,3)} mg = ${ck} cliques (referência: ${f(rm)} mg = ${rc} cliques nesta caneta)\nUso fora da bula; dose por cliques não validada pelo fabricante.`;
 }
 $("copyP").onclick=()=>copy(pSummary+SUF,"copyMsgP");
@@ -459,7 +460,7 @@ function renderProd(){const gs=["Todos",...new Set(CAT.map(p=>p.g))];
  $("prodT").innerHTML=CAT.filter(p=>prodF==="Todos"||p.g===prodF).map((p,i)=>{const k=CAT.indexOf(p);const pi=PENS.findIndex(x=>x.nome.startsWith(p.m+" · "+p.e));
   const conc=p.c?`${f(p.c,3)} ${p.t==="combo"?(/Soliqua/.test(p.m)?"mg/mL lixi + 100 U/mL":"mg/mL lira + 100 U/mL"):"mg/mL"}${p.v?` · ${f(p.v,2)} mL`:""}${p.c&&p.v&&p.t!=="combo"?` (${f(p.c*p.v,2)} mg)`:""}`:(p.v?`${f(p.v,2)} mL/caneta`:"—");
   const warn=/PROIBIDA|ainda sem|Conferir|aguarda/i.test(p.st)||p.conf;
-  return `<tr><td><span class="mk">${p.m}</span><br><span class="small">${p.e}</span></td><td><span class="tag2">${TLAB[p.t]}</span></td><td>${conc}${p.conf?'<br><span class="tag2 warn">conferir rótulo</span>':''}</td><td>${p.d}</td><td class="num">${p.ck?`${p.ck} = ${f(p.refMg,3)} mg`:(p.t==="dial"||p.t==="fixa"?'<span class="small">não contar</span>':"—")}</td><td class="small">${p.esq}</td><td class="small"><span class="${warn?'tag2 warn':''}">${p.st}</span></td><td>${pi>=0?`<button class="linkb" data-pi="${pi}">Calcular</button>`:(p.t==="frasco"&&!/PROIBIDA/.test(p.st)?`<button class="linkb" data-ser="1">Seringa</button>`:"")}</td></tr>`;}).join("");
+  return `<tr><td><span class="mk">${p.m}</span><br><span class="small">${p.e}</span></td><td><span class="tag2">${TLAB[p.t]}</span></td><td>${conc}${p.conf?'<br><span class="tag2 warn">conferir rótulo</span>':''}</td><td>${p.d}</td><td class="num">${p.ck?`${p.ck} = ${f(p.refMg,3)} mg`+(p.mgDial?'<br><span class="tag2 warn">bula: não contar</span>':/Byetta|Lyxumia/.test(p.m)?'<br><span class="tag2 warn">1 acionamento</span>':''):"—"}</td><td class="small">${p.esq}</td><td class="small"><span class="${warn?'tag2 warn':''}">${p.st}</span></td><td>${pi>=0?`<button class="linkb" data-pi="${pi}">Calcular</button>`:(p.t==="frasco"&&!/PROIBIDA/.test(p.st)?`<button class="linkb" data-ser="1">Seringa</button>`:"")}</td></tr>`;}).join("");
  $("prodT").querySelectorAll("[data-pi]").forEach(b=>b.onclick=()=>{$("pPen").value=PENS[+b.dataset.pi].id;setPen();document.querySelector('nav button[data-v="pen"]').click();window.scrollTo(0,0);});
  $("prodT").querySelectorAll("[data-ser]").forEach(b=>b.onclick=()=>{$("sDrug").value="tz";$("sDrug").dispatchEvent(new Event("change"));document.querySelector('nav button[data-v="ser"]').click();window.scrollTo(0,0);});
 }
